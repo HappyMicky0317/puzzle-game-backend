@@ -1,14 +1,19 @@
 const express = require('express');
 
 const app = express();
+const cors = require('cors');
 
 // Init Middleware
 app.use(express.json());
+app.use(cors());
+
+const user = require('./routes/user');
+const questionaire = require('./routes/questionaire');
 
 
-const user = require('./routes/user')
 // Define Routes
 app.use('/api/users', user);
+app.use('/api/questionaire', questionaire)
 
 app.get('*', (req, res) => {
     res.send('user is running');
