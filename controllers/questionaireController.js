@@ -41,58 +41,49 @@ const getSubject = async (req, res) => {
     });    
 }
 
-const asking = async (req, res) => { 
-    // var subject = req.body.subject;
-    // var question = req.body.question;
-    // console.log(subject + "/" + question);
-
-    const searchQueries = {
-        openAI: 'OpenAI',
-        apples: 'Apples',
-        cats: 'Cats',
-        // Add more search queries here
-      };
-
-    for (const key in searchQueries) {
-        if (Object.hasOwnProperty.call(searchQueries, key)) {
-            var searchQuery = searchQueries[key];
-        }
-    }
-
-    console.log(searchQuery);
-
-
-    const apiUrl = 'https://en.wikipedia.org/w/api.php';
-    const params = {
-      action: 'query',
-      prop: 'extracts',
-      format: 'json',
-      titles: searchQuery
-    };
-
+    const asking = async (req, res) => { 
+    
+    const apiUrl = "https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles=Stack%20Overflow";
     try {
-        const response = await axios.get(apiUrl, { params });
+        const response = await axios.get(apiUrl, { 
+            headers: {
+                'User-Agent': 'Your User Agent',
+                'Accept-Language': 'en-US',
+            },
+            // params : params
+        });
 
         // Process the response data
         const pageId = Object.keys(response.data.query.pages)[0];
         const extract = response.data.query.pages[pageId].extract;
-        console.log(extract);
+
+        // https://en.wikipedia.org/w/index.php?curid=21721040               url for visiting wikipedia site by using pageID
+
+        // https://en.wikipedia.org/w/api.php?action=query&titles=Stack%20Overflow&prop=pageimages&format=json&pithumbsize=1000    url for getting representing images
+          
+        // process for getting profile image from wikipedia
+        const imageUrl = "https://en.wikipedia.org/w/api.php?action=query&prop=imageinfo&format=json&iiprop=url&iiurlwidth=400&titles=Stack%20Overflow&generator=images"
+        const imageResponse = await axios.get(imageUrl, { 
+            headers: {
+                'User-Agent': 'Your User Agent',
+                'Accept-Language': 'en-US',
+            },
+            // params : params
+        });
+        console.log(JSON.stringify(imageResponse.data));
+
+
+        res.status(500).json({
+            success:true,
+            data : response.data.query.pages
+        })
     } catch (error) {
-        console.error(error);
+        console.log("Error:", error)
+        res.status(500).json({
+            success:false,
+            msg:"Error executing the query"
+        })
     }
-
-
-
-
-
-
-
-
-
-    res.status(200).json({
-        success:true,
-        message: req.body
-    })
 }
 
 
