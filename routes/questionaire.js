@@ -5,5 +5,6 @@ const questionaireController = require('../controllers/questionaireController')
 
 router.post('/subject', questionaireController.getSubject);
 router.post('/asking', questionaireController.asking);
+router.post('/getDescription', questionaireController.getDescription);
 
 module.exports = router

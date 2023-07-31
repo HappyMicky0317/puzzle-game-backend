@@ -41,28 +41,68 @@ const getSubject = async (req, res) => {
     });    
 }
 
-    const asking = async (req, res) => { 
+const asking = async (req, res) => { 
+    const subject = req.body.subject;
+    const question = req.body.question;
+    console.log(subject + "/" + question);
+
+    const apiKey = "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";
+
+    const endpoint = 'https://api.openai.com/v1/completions';
+
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+    };
+
+    var prompt = "This ia about " + subject + ".";
+    prompt = prompt + question;
+    prompt = prompt + "Answer with yes or no.";
+
+    const data = {
+        prompt: prompt,
+        // max_tokens: 50,
+        model: 'text-davinci-002' // specify the model you want to use
+    };
+
+    axios.post(endpoint, data, { headers })
+    .then(response => {
+        // handle the response
+        console.log(response.data.choices[0].text);
+        res.status(200).json({
+            answer:response.data.choices[0].text
+        })
+    })
+    .catch(error => {
+        // handle the error
+        console.error(error);
+    });
     
-    const apiUrl = "https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles=Stack%20Overflow";
+}
+
+
+const getDescription = async (req, res) => { 
+    var subject = req.body.subject;
+
+    const apiUrl = "https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles=" + subject;
     try {
         const response = await axios.get(apiUrl, { 
             headers: {
                 'User-Agent': 'Your User Agent',
                 'Accept-Language': 'en-US',
             },
-            // params : params
         });
 
         // Process the response data
-        const pageId = Object.keys(response.data.query.pages)[0];
-        const extract = response.data.query.pages[pageId].extract;
+        const return_val_pageId = Object.keys(response.data.query.pages)[0];
+        const return_val_extract = response.data.query.pages[return_val_pageId].extract;
 
         // https://en.wikipedia.org/w/index.php?curid=21721040               url for visiting wikipedia site by using pageID
 
         // https://en.wikipedia.org/w/api.php?action=query&titles=Stack%20Overflow&prop=pageimages&format=json&pithumbsize=1000    url for getting representing images
           
         // process for getting profile image from wikipedia
-        const imageUrl = "https://en.wikipedia.org/w/api.php?action=query&prop=imageinfo&format=json&iiprop=url&iiurlwidth=400&titles=Stack%20Overflow&generator=images"
+        const imageUrl = "https://en.wikipedia.org/w/api.php?action=query&titles=" + subject + "&prop=pageimages&format=json&pithumbsize=1000";
         const imageResponse = await axios.get(imageUrl, { 
             headers: {
                 'User-Agent': 'Your User Agent',
@@ -70,12 +110,17 @@ const getSubject = async (req, res) => {
             },
             // params : params
         });
-        console.log(JSON.stringify(imageResponse.data));
+        var return_val_image = imageResponse.data.query.pages[return_val_pageId].thumbnail.source
+        console.log(JSON.stringify(imageResponse.data.query.pages[return_val_pageId].thumbnail.source));
 
 
-        res.status(500).json({
+        res.status(200).json({
             success:true,
-            data : response.data.query.pages
+            data : {
+                pageId : return_val_pageId,
+                description: return_val_extract,
+                image: return_val_image
+            }
         })
     } catch (error) {
         console.log("Error:", error)
@@ -86,8 +131,8 @@ const getSubject = async (req, res) => {
     }
 }
 
-
 module.exports = {
     getSubject,
-    asking
+    asking,
+    getDescription
 }
