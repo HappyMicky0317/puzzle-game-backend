@@ -23,7 +23,9 @@ const initial = async (req, res) => {
                     })
                 } else {
                     var subject = results[0].subject_name;
+                    var category = results[0].category_name;
                     return_val.subject = subject;
+                    return_val.category = category;
                     db.query('SELECT * FROM bonus_clues WHERE category_id = ' + results[0].category_id, async (error, results) => {
                         if(error) {
                             res.status(500).json({
@@ -56,18 +58,12 @@ const initial = async (req, res) => {
                                     return_val.clues[i].question = question;
                                     return_val.clues[i].answer = answer.answer;
                                 }
-                                console.log(return_val);
+                                return_val.success = true;
+                                res.status(200).json(return_val);
                             })
                             // console.log(random_quires);
                             // console.log(wiki_data.extract)
                         }
-                    })
-
-
-                    
-                    res.status(200).json({
-                        success: true,
-                        results: results
                     })
                 }
             })
