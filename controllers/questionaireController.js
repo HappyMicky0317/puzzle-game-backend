@@ -27,6 +27,7 @@ const getSubject = async (req, res) => {
                         msg:"Error executing the query"
                     })
                 } else {
+                    console.log(results[0].subject_name);
                     res.status(200).json({
                         success: true,
                         results: results
@@ -44,9 +45,8 @@ const getSubject = async (req, res) => {
 const asking = async (req, res) => { 
     const subject = req.body.subject;
     const question = req.body.question;
-    console.log(subject + "/" + question);
 
-    const apiKey = "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";
+    const apiKey = "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";
 
     const endpoint = 'https://api.openai.com/v1/completions';
 
@@ -58,6 +58,8 @@ const asking = async (req, res) => {
     var prompt = "This ia about " + subject + ".";
     prompt = prompt + question;
     prompt = prompt + "Answer with yes or no.";
+    prompt = prompt + "I don't need end and start dot.";
+    prompt = prompt + "This is about sportsperson";
 
     const data = {
         prompt: prompt,
