@@ -2,14 +2,9 @@ const db = require("../db/db");
 
 const axios = require('axios');
 
-const getSubject = async (req, res) => {
-    // const getRandomInteger = () => {
-    //     return Math.floor(Math.random() * 20) + 1;
-    // };
-    // const randomInteger = getRandomInteger();
-    // res.status(200).json({
-    //     data:randomInteger
-    // })
+const initial = async (req, res) => {
+    var clues_num = req.body.num;
+    var return_val = {};
 
     db.query('SELECT * FROM main_object', (error, results) => {
         if (error) {
@@ -20,14 +15,56 @@ const getSubject = async (req, res) => {
         } else {
             var len = results.length;
             var random_int = Math.floor(Math.random() * len) + 1;
-            db.query('SELECT main_object.id AS id, main_object.name AS subject_name, category.name AS category_name FROM main_object JOIN category ON main_object.category_id = category.id WHERE main_object.id = ' + random_int, (error, results) => {
+            db.query('SELECT main_object.id AS id, main_object.name AS subject_name, category.name AS category_name, category.id AS category_id FROM main_object JOIN category ON main_object.category_id = category.id WHERE main_object.id = ' + random_int, (error, results) => {
                 if(error) {
                     res.status(500).json({
                         success:false,
                         msg:"Error executing the query"
                     })
                 } else {
-                    console.log(results[0].subject_name);
+                    var subject = results[0].subject_name;
+                    return_val.subject = subject;
+                    db.query('SELECT * FROM bonus_clues WHERE category_id = ' + results[0].category_id, async (error, results) => {
+                        if(error) {
+                            res.status(500).json({
+                                success:false,
+                                msg:"Error executing the query"
+                            })
+                        } else {
+                            var query_length = results.length;
+                            var random_quires = [];
+                            // console.log(clues_num + "----------------------");
+                            for(var i = 0 ; i < clues_num ; i++){                         
+                                if(i === 0){
+                                    var temp_random = Math.floor(Math.random() * query_length) + 1;
+                                    random_quires.push(temp_random);
+                                } else {
+                                    while(random_quires.includes(temp_random)){
+                                        var temp_random = Math.floor(Math.random() * query_length) + 1;
+                                    }
+                                    random_quires.push(temp_random);
+                                }       
+                            }
+                            db.query(`SELECT question FROM bonus_clues WHERE id IN (${random_quires.join(',')})`, async (error, results) => {
+                                console.log(results);
+                                return_val.clues = [];                                
+                                var wiki_data = await wikiFunc(subject);
+                                for(var i = 0; i < results.length ; i++){
+                                    var question = results[i].question;
+                                    var answer = await gptFunc(subject, wiki_data.extract, question);
+                                    return_val.clues[i] = {};
+                                    return_val.clues[i].question = question;
+                                    return_val.clues[i].answer = answer.answer;
+                                }
+                                console.log(return_val);
+                            })
+                            // console.log(random_quires);
+                            // console.log(wiki_data.extract)
+                        }
+                    })
+
+
+                    
                     res.status(200).json({
                         success: true,
                         results: results
@@ -45,49 +82,37 @@ const getSubject = async (req, res) => {
 const asking = async (req, res) => { 
     const subject = req.body.subject;
     const question = req.body.question;
+    const wiki_data = await wikiFunc(subject);
+    const description = wiki_data.extract;
+    // console.log(subject + "/" + question + "/" + description);
 
-    const apiKey = "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";
-
-    const endpoint = 'https://api.openai.com/v1/completions';
-
-    const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-    };
-
-    var prompt = "This ia about " + subject + ".";
-    prompt = prompt + question;
-    prompt = prompt + "Answer with yes or no.";
-    prompt = prompt + "I don't need end and start dot.";
-    prompt = prompt + "This is about sportsperson";
-
-    const data = {
-        prompt: prompt,
-        // max_tokens: 50,
-        model: 'text-davinci-002' // specify the model you want to use
-    };
-
-    axios.post(endpoint, data, { headers })
-    .then(response => {
-        // handle the response
-        console.log(response.data.choices[0].text);
-        res.status(200).json({
-            answer:response.data.choices[0].text
-        })
-    })
-    .catch(error => {
-        // handle the error
-        console.error(error);
-    });
+    var answer = await gptFunc(subject, description, question);
     
+    if(answer.success === true){
+        res.status(200).json(answer.answer);
+    } else {
+        res.status(500).json(answer.message);
+    }  
 }
 
 
 const getDescription = async (req, res) => { 
     var subject = req.body.subject;
+    var val = await wikiFunc(subject);
+    if(val.success === true) {
+        res.status(200).json(val);
+    } else {
+        res.status(500).json(val);
+    }
 
+    
+}
+
+const wikiFunc = async (subject) => {
+    var return_val = {};
     const apiUrl = "https://en.wikipedia.org/w/api.php?format=json&action=query&prop=extracts&exintro&explaintext&redirects=1&titles=" + subject;
     try {
+        return_val.success = true;
         const response = await axios.get(apiUrl, { 
             headers: {
                 'User-Agent': 'Your User Agent',
@@ -96,13 +121,9 @@ const getDescription = async (req, res) => {
         });
 
         // Process the response data
-        const return_val_pageId = Object.keys(response.data.query.pages)[0];
-        const return_val_extract = response.data.query.pages[return_val_pageId].extract;
+        return_val.pageId = Object.keys(response.data.query.pages)[0];    // wikipedia page ID
+        return_val.extract = response.data.query.pages[return_val.pageId].extract;      // wikipedia main description
 
-        // https://en.wikipedia.org/w/index.php?curid=21721040               url for visiting wikipedia site by using pageID
-
-        // https://en.wikipedia.org/w/api.php?action=query&titles=Stack%20Overflow&prop=pageimages&format=json&pithumbsize=1000    url for getting representing images
-          
         // process for getting profile image from wikipedia
         const imageUrl = "https://en.wikipedia.org/w/api.php?action=query&titles=" + subject + "&prop=pageimages&format=json&pithumbsize=1000";
         const imageResponse = await axios.get(imageUrl, { 
@@ -112,29 +133,62 @@ const getDescription = async (req, res) => {
             },
             // params : params
         });
-        var return_val_image = imageResponse.data.query.pages[return_val_pageId].thumbnail.source
-        console.log(JSON.stringify(imageResponse.data.query.pages[return_val_pageId].thumbnail.source));
+        return_val.image = imageResponse.data.query.pages[return_val.pageId].thumbnail.source;
+        return return_val;
 
 
-        res.status(200).json({
-            success:true,
-            data : {
-                pageId : return_val_pageId,
-                description: return_val_extract,
-                image: return_val_image
-            }
-        })
     } catch (error) {
-        console.log("Error:", error)
-        res.status(500).json({
-            success:false,
-            msg:"Error executing the query"
-        })
+        return_val.success = false;
+        return_val.message = error;
+        return return_val;
+    }
+}
+
+const gptFunc = async (subject, description, question) => {
+    var return_val = {};
+    try{
+        const apiKey = "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";
+
+        const endpoint = 'https://api.openai.com/v1/completions';
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        };
+
+        // var prompt = "This ia about " + subject + ".\n";
+        // prompt = prompt + description + "\n\n";
+        // prompt = prompt + question;
+        // prompt = prompt + "Answer with yes or no.\n";
+        var prompt = `This is about ${subject}.
+            ${description}
+
+            ${question}
+            Answer with yes or no.
+        `
+        const data = {
+            prompt: prompt,
+            // max_tokens: 50,
+            model: 'text-davinci-002' // specify the model you want to use
+        };
+        // console.log(data);
+        var response = await axios.post(endpoint, data, { headers });
+        var answer = response.data.choices[0].text;
+        answer = answer.replaceAll("\n", "");
+        answer = answer.replaceAll(".", "");
+        return_val.success = true;
+        return_val.answer = answer;
+        return return_val;
+        // console.log(answer);
+    } catch (error){
+        return_val.success = false;
+        return_val.message = error;
+        return return_val;
     }
 }
 
 module.exports = {
-    getSubject,
+    initial,
     asking,
     getDescription
 }
