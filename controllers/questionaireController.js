@@ -2,6 +2,8 @@ const db = require("../db/db");
 
 const axios = require('axios');
 
+const { OPENAI_KEY } = require('./constants');
+
 const initial = async (req, res) => {
     var clues_num = req.body.num;
     var return_val = {};
@@ -48,17 +50,19 @@ const initial = async (req, res) => {
                                 }       
                             }
                             db.query(`SELECT question FROM bonus_clues WHERE id IN (${random_quires.join(',')})`, async (error, results) => {
-                                console.log(results);
+                                // console.log(results);
                                 return_val.clues = [];                                
                                 var wiki_data = await wikiFunc(subject);
                                 for(var i = 0; i < results.length ; i++){
                                     var question = results[i].question;
                                     var answer = await gptFunc(subject, wiki_data.extract, question);
+                                    // console.log(answer);
                                     return_val.clues[i] = {};
                                     return_val.clues[i].question = question;
                                     return_val.clues[i].answer = answer.answer;
                                 }
                                 return_val.success = true;
+                                // console.log(return_val);
                                 res.status(200).json(return_val);
                             })
                             // console.log(random_quires);
@@ -143,7 +147,8 @@ const wikiFunc = async (subject) => {
 const gptFunc = async (subject, description, question) => {
     var return_val = {};
     try{
-        const apiKey = "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";
+        const apiKey = OPENAI_KEY;
+        // console.log(OPENAI_KEY)
 
         const endpoint = 'https://api.openai.com/v1/completions';
 
