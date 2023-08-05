@@ -37,7 +37,6 @@ const initial = async (req, res) => {
                         } else {
                             var query_length = results.length;
                             var random_quires = [];
-                            // console.log(clues_num + "----------------------");
                             for(var i = 0 ; i < clues_num ; i++){                         
                                 if(i === 0){
                                     var temp_random = Math.floor(Math.random() * query_length) + 1;
@@ -50,7 +49,6 @@ const initial = async (req, res) => {
                                 }       
                             }
                             db.query(`SELECT question FROM bonus_clues WHERE id IN (${random_quires.join(',')})`, async (error, results) => {
-                                // console.log(results);
                                 return_val.clues = [];                                
                                 var wiki_data = await wikiFunc(subject);
                                 for(var i = 0; i < results.length ; i++){
@@ -59,7 +57,6 @@ const initial = async (req, res) => {
                                     }
                                     var question = results[i].question;
                                     var answer = await gptFunc(subject, wiki_data.extract, question);
-                                    // console.log(answer);
                                     return_val.clues[i] = {};
                                     return_val.clues[i].question = question;
                                     return_val.clues[i].answer = answer.answer;
@@ -68,8 +65,6 @@ const initial = async (req, res) => {
                                 console.log(return_val);
                                 res.status(200).json(return_val);
                             })
-                            // console.log(random_quires);
-                            // console.log(wiki_data.extract)
                         }
                     })
                 }
@@ -87,7 +82,6 @@ const asking = async (req, res) => {
     const question = req.body.question;
     const wiki_data = await wikiFunc(subject);
     const description = wiki_data.extract;
-    // console.log(subject + "/" + question + "/" + description);
 
     var answer = await gptFunc(subject, description, question);
     
@@ -151,7 +145,6 @@ const gptFunc = async (subject, description, question) => {
     var return_val = {};
     try{
         const apiKey = OPENAI_KEY;
-        // console.log(OPENAI_KEY)
 
         const endpoint = 'https://api.openai.com/v1/completions';
 
@@ -159,11 +152,6 @@ const gptFunc = async (subject, description, question) => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
         };
-
-        // var prompt = "This ia about " + subject + ".\n";
-        // prompt = prompt + description + "\n\n";
-        // prompt = prompt + question;
-        // prompt = prompt + "Answer with yes or no.\n";
         var prompt = `This is about ${subject}.
             ${description}
 
@@ -172,10 +160,8 @@ const gptFunc = async (subject, description, question) => {
         `
         const data = {
             prompt: prompt,
-            // max_tokens: 50,
             model: 'text-davinci-002' // specify the model you want to use
         };
-        // console.log(data);
         var response = await axios.post(endpoint, data, { headers });
         var answer = response.data.choices[0].text;
         answer = answer.replaceAll("\n", "");
@@ -183,7 +169,6 @@ const gptFunc = async (subject, description, question) => {
         return_val.success = true;
         return_val.answer = answer;
         return return_val;
-        // console.log(answer);
     } catch (error){
         return_val.success = false;
         return_val.message = error;
