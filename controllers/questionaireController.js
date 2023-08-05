@@ -54,6 +54,9 @@ const initial = async (req, res) => {
                                 return_val.clues = [];                                
                                 var wiki_data = await wikiFunc(subject);
                                 for(var i = 0; i < results.length ; i++){
+                                    for(var k = 0; k < 50000 ; k++){
+
+                                    }
                                     var question = results[i].question;
                                     var answer = await gptFunc(subject, wiki_data.extract, question);
                                     // console.log(answer);
@@ -62,7 +65,7 @@ const initial = async (req, res) => {
                                     return_val.clues[i].answer = answer.answer;
                                 }
                                 return_val.success = true;
-                                // console.log(return_val);
+                                console.log(return_val);
                                 res.status(200).json(return_val);
                             })
                             // console.log(random_quires);
