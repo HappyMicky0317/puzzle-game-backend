@@ -1,7 +1,7 @@
 const db = require("../db/db");
 const bcrypt = require("bcrypt");
 
-const signin = async (req, res) => {
+const signin = (req, res) => {
     var email = req.body.email;
     var password = req.body.password;
     var return_val = {}
@@ -33,7 +33,7 @@ const signin = async (req, res) => {
     })
 }
 
-const signup = async (req, res) => {
+const signup = (req, res) => {
     var name = req.body.name;
     var email = req.body.email;
     var password = req.body.password;
@@ -61,7 +61,31 @@ const signup = async (req, res) => {
     })
 }
 
+const history = (req, res) => {
+    var email = req.body.email;
+    var return_val = {};
+    db.query('SELECT history.time, history.score FROM history JOIN user ON history.user_id = user.id WHERE user.email = "' + email + '"', (error, results) => {
+        if (error) {
+            return_val.success = false;
+            return_val.msg = error;
+            res.status(500).json(return_val);
+        } else { 
+            let sum = 0;
+            for (let i = 0; i < results.length; i++){
+                sum += results[i].score
+            }
+            return_val.success = true;
+            return_val.data = results;
+            return_val.sum = sum;
+            console.log(return_val);
+            res.status(200).json(return_val);
+        }
+    })
+    console.log(email);
+}
+
 module.exports = {
     signin,
-    signup
+    signup,
+    history
 }

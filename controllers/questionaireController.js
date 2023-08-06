@@ -100,9 +100,30 @@ const getDescription = async (req, res) => {
         res.status(200).json(val);
     } else {
         res.status(500).json(val);
-    }
+    }    
+}
 
-    
+const insertResult = (req, res) => {
+    var score = req.body.score;
+    var email = req.body.email;
+    var return_val = {};
+    const currentTime = Date.now();
+    db.query('INSERT INTO history (user_id, time, score) SELECT id, "' + currentTime + '", "' + score + '" FROM user WHERE email = "' + email + '"', (error, results) => {
+        if(error) {
+            return_val.success = false;
+            return_val.msg = error;
+            res.status(500).json(
+                return_val
+            );
+        } else {
+            return_val.success = true;
+            res.status((200)).json(
+                return_val
+            );
+        }
+    })
+    console.log(score + "/" + email);
+
 }
 
 const wikiFunc = async (subject) => {
@@ -179,5 +200,6 @@ const gptFunc = async (subject, description, question) => {
 module.exports = {
     initial,
     asking,
-    getDescription
+    getDescription,
+    insertResult
 }
