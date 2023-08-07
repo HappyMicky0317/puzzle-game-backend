@@ -77,15 +77,39 @@ const history = (req, res) => {
             return_val.success = true;
             return_val.data = results;
             return_val.sum = sum;
-            console.log(return_val);
             res.status(200).json(return_val);
         }
     })
-    console.log(email);
+}
+
+const checkAvailable = (req, res) => {
+    var email = req.body.email;
+    var return_val = {};
+    db.query('SELECT MAX(history.time) AS most_recent FROM history JOIN user ON history.user_id = user.id WHERE user.email = "' + email + '"', (error, results) => {
+        if (error) {
+            return_val.success = false;
+            return_val.msg = error;
+            res.status(500).json(return_val);
+        } else { 
+            return_val.success = true;
+            var previous = results[0].most_recent;
+            var previous_day = new Date(parseInt(previous)).getDate();
+            var today = Date.now();
+            var today_day = new Date(parseInt(today)).getDate();
+            if(today_day - previous_day !== 0) {
+                return_val.play = true
+            } else {
+                return_val.play = false
+            }
+            res.status(200).json(return_val);
+            
+        }
+    })
 }
 
 module.exports = {
     signin,
     signup,
-    history
+    history,
+    checkAvailable
 }
