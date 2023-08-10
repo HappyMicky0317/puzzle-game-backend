@@ -205,7 +205,7 @@ const gptFunc = async (subject, description, question) => {
         `;
     const data = {
       prompt: prompt,
-      model: "text-davinci-002", // specify the model you want to use
+      model: "gpt-3.5-turbo", // specify the model you want to use
     };
     var response = await axios.post(endpoint, data, { headers });
     var answer = response.data.choices[0].text;
