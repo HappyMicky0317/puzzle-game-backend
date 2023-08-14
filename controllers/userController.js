@@ -49,27 +49,42 @@ const signup = (req, res) => {
       return_val.msg = err;
       res.status(500).json(return_val);
     }
-    db.query(
-      'INSERT INTO user (email, password, name) VALUES ("' +
-        email +
-        '", "' +
-        hashedPassword +
-        '", "' +
-        name +
-        '")',
-      (error, results) => {
-        if (error) {
-          return_val.success = false;
-          return_val.msg = error;
-          res.status(500).json(return_val);
-        } else {
-          return_val.success = true;
-          return_val.name = name;
-          return_val.id = email;
+    
+    db.query("SELECT * FROM user WHERE email='" + email + "'" , (error, results) => {
+      if (error) {
+        return_val.success = false;
+        return_val.msg = error;
+        res.status(500).json(return_val);
+      } else {
+        if(results.length !== 0) {
+          return_val,success = true;
+          return_val.msg = "This email is already taken. Input another email";
           res.status(200).json(return_val);
+        } else {
+          db.query(
+            'INSERT INTO user (email, password, name) VALUES ("' +
+              email +
+              '", "' +
+              hashedPassword +
+              '", "' +
+              name +
+              '")',
+            (error, results) => {
+              if (error) {
+                return_val.success = false;
+                return_val.msg = error;
+                res.status(500).json(return_val);
+              } else {
+                return_val.success = true;
+                return_val.name = name;
+                return_val.email = email;
+                res.status(200).json(return_val);
+              }
+            }
+          );
         }
       }
-    );
+    })
   });
 };
 
