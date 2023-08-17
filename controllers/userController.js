@@ -143,9 +143,54 @@ const checkAvailable = (req, res) => {
   );
 };
 
+const insertDiceVal = (req, res) => {
+  var email = req.body.email;
+  var result = req.body.result;
+  const currentTime = Date.now();
+  var inserting_val = String(result) + String(currentTime);
+  var return_val = {};
+  db.query(
+    'UPDATE user SET last_dice = "' + inserting_val + '" WHERE email = "' + email + '"',
+    (error, results) => {
+      if (error) {
+        return_val.success = false;
+        return_val.msg = error;
+        res.status(500).json(return_val);
+      } else { 
+        return_val.success = true;
+      }
+    })
+}
+
+const checkDiceAvailable = (req, res) => {
+  var email = req.body.email;
+  var return_val = {};
+  db.query('SELECT last_dice FROM user WHERE email = "' + email + '"', (error, results) => {
+    var data = results[0].last_dice;
+    if(data === "0"){
+      return_val.success = true;
+    } else {
+      var dice_result = data.slice(0,1);
+      var timestamp = data.slice(1);
+      var previous_day = new Date(parseInt(timestamp)).getDate();
+      var today = new Date(parseInt(Date.now())).getDate();
+      if(today - previous_day !== 0) {
+        return_val.success = true;
+      } else {
+        return_val.success = false;
+        return_val.previous_val = dice_result;
+      }
+    }
+    console.log(return_val);
+    res.status(200).json(return_val);
+  })
+}
+
 module.exports = {
   signin,
   signup,
   history,
   checkAvailable,
+  insertDiceVal,
+  checkDiceAvailable
 };
