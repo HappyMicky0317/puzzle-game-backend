@@ -6,92 +6,28 @@ const { OPENAI_KEY } = require("./constants");
 
 const initial = async (req, res) => {
   var clues_num = req.body.num;
+  var email = req.body.email;
   var return_val = {};
-
-  db.query("SELECT * FROM main_object", (error, results) => {
-    if (error) {
-      res.status(500).json({
-        success: false,
-        msg: "Error executing the query",
-      });
-    } else {
-      var len = results.length;
-      var random_int = Math.floor(Math.random() * len) + 1;
-      db.query(
-        "SELECT main_object.id AS id, main_object.name AS subject_name, category.name AS category_name, category.id AS category_id FROM main_object JOIN category ON main_object.category_id = category.id WHERE main_object.id = " +
-          random_int,
-        (error, results) => {
-          if (error) {
-            res.status(500).json({
-              success: false,
-              msg: "Error executing the query",
-            });
-          } else {
-            var subject = results[0].subject_name;
-            var category = results[0].category_name;
-            return_val.subject = subject;
-            return_val.category = category;
-            db.query(
-              "SELECT * FROM bonus_clues WHERE category_id = " +
-                results[0].category_id,
-              async (error, results) => {
-                if (error) {
-                  res.status(500).json({
-                    success: false,
-                    msg: "Error executing the query",
-                  });
-                } else {
-                  var query_length = results.length;
-                  var random_quires = [];
-                  for (var i = 0; i < clues_num; i++) {
-                    if (i === 0) {
-                      var temp_random =
-                        Math.floor(Math.random() * query_length) + 1;
-                      random_quires.push(temp_random);
-                    } else {
-                      while (random_quires.includes(temp_random)) {
-                        var temp_random =
-                          Math.floor(Math.random() * query_length) + 1;
-                      }
-                      random_quires.push(temp_random);
-                    }
-                  }
-                  db.query(
-                    `SELECT question FROM bonus_clues WHERE id IN (${random_quires.join(
-                      ","
-                    )})`,
-                    async (error, results) => {
-                      return_val.clues = [];
-                      var wiki_data = await wikiFunc(subject);
-                      for (var i = 0; i < results.length; i++) {
-                        for (var k = 0; k < 50000; k++) {}
-                        var question = results[i].question;
-                        var answer = await gptFunc(
-                          subject,
-                          wiki_data.extract,
-                          question
-                        );
-                        return_val.clues[i] = {};
-                        return_val.clues[i].question = question;
-                        return_val.clues[i].answer = answer.answer;
-                      }
-                      return_val.success = true;
-                      console.log(return_val);
-                      res.status(200).json(return_val);
-                    }
-                  );
-                }
-              }
-            );
-          }
-        }
-      );
-      // res.status(200).json({
-      //     success: true,
-      //     message: results.length
-      // })
+  db.query(
+    "SELECT id FROM user WHERE email = '" + email + "'",
+    async (error, results) => {
+      if (results.length !== 0) {
+        var user_id = results[0].id;
+        var subject_data = await getSubject(user_id);
+        return_val.subject = subject_data.subject_name;
+        return_val.category = subject_data.category_name;
+        var category_id = subject_data.category_id;
+        var bonusq_data = await getBonusq(user_id, category_id, clues_num,subject_data.subject_name);
+        return_val.clues = bonusq_data;
+        return_val.success = true;
+        res.status(200).json(return_val);
+      } else {
+        return_val.success = false;
+        return_val.msg = "Invalid user";
+        res.json(200).json(return_val);
+      }
     }
-  });
+  );
 };
 
 const asking = async (req, res) => {
@@ -143,8 +79,170 @@ const insertResult = (req, res) => {
       }
     }
   );
-  console.log(score + "/" + email);
 };
+
+const sqlQuery = (queryString) => {
+  return new Promise((resolve, reject) => {
+    db.query(queryString, (err, result) => {
+      if (err) reject(err);
+      resolve(result);
+    });
+  });
+};
+// get subject and category
+const getSubject = async (user_id) => {
+  const qeryResult =await sqlQuery(
+    "SELECT previous_subject.time AS previous_time, main_object.id AS subject_id, main_object.name AS subject_name, main_object.category_id AS category_id FROM previous_subject JOIN main_object ON previous_subject.subject_id = main_object.id WHERE previous_subject.user_id = '" + user_id + "'"
+  );
+  const results = Object.values(JSON.parse(JSON.stringify(qeryResult)));
+  if (results.length === 0) {
+    return randomSubject(user_id);
+  } else {
+    var previous_time = results[0].previous_time;
+    var previous_day = new Date(parseInt(previous_time)).getDate();
+    var today_day = new Date(parseInt(Date.now())).getDate();
+    if (today_day - previous_day !== 0) {
+      return randomSubject(user_id);
+    } else {
+      var result = await
+      sqlQuery(
+        "SELECT main_object.id AS id, main_object.name AS subject_name, category.name AS category_name, category.id AS category_id FROM previous_subject JOIN main_object ON previous_subject.subject_id = main_object.id JOIN category ON main_object.category_id = category.id WHERE previous_subject.user_id = '"
+         +
+          user_id +
+          "'");
+        result = Object.values(JSON.parse(JSON.stringify(result)));
+        return result[0];
+    }
+  }
+};
+
+// getting random subject and category
+const randomSubject = async (user_id) => {
+  var results = await sqlQuery("SELECT * FROM main_object");
+  results = Object.values(JSON.parse(JSON.stringify(results)));
+  var len = results.length;
+  var random_int = Math.floor(Math.random() * len) + 1;
+
+  var selected_val = await sqlQuery("SELECT main_object.id AS id, main_object.name AS subject_name, category.name AS category_name, category.id AS category_id FROM main_object JOIN category ON main_object.category_id = category.id WHERE main_object.id = " +
+  random_int);
+  selected_val = Object.values(JSON.parse(JSON.stringify(selected_val)));
+  var subject_id = selected_val[0].id;
+  var today = Date.now();
+
+  results = await sqlQuery("SELECT * FROM previous_subject WHERE user_id = '" + user_id + "'");
+  results = Object.values(JSON.parse(JSON.stringify(results)));
+
+  if (results.length === 0) {
+    var query =
+      "INSERT INTO previous_subject (user_id, subject_id, time) VALUEs ('" +
+      user_id +
+      "','" +
+      subject_id +
+      "', + '" +
+      today +
+      "')";
+  } else {
+    var query =
+      "UPDATE previous_subject SET subject_id = '" +
+      subject_id +
+      "', time = '" +
+      today +
+      "' WHERE user_id = '" +
+      user_id +
+      "'";
+  }
+  await sqlQuery(query);
+  return selected_val[0];
+};
+
+const getBonusq = async (user_id, category_id, clues_num,subject_name) => {
+  const qeryResult =await sqlQuery(
+    "SELECT previous_bonusq.time AS previous_time FROM previous_bonusq WHERE previous_bonusq.user_id = '" + user_id + "'");
+  const results = Object.values(JSON.parse(JSON.stringify(qeryResult)));
+  if (results.length === 0) {
+    // console.log(randomBonusq(user_id, category_id, clues_num))
+    return randomBonusq(user_id, category_id, clues_num,subject_name);
+  } else {
+    var previous_time = results[0].previous_time;
+    var previous_day = new Date(parseInt(previous_time)).getDate();
+    var today_day = new Date(parseInt(Date.now())).getDate();
+    if(today_day - previous_day !== 0) {
+      // console.log(randomBonusq(user_id, category_id, clues_num))
+    return randomBonusq(user_id, category_id, clues_num,subject_name);
+    } else {
+      var result = await
+      sqlQuery(
+        "SELECT bonusq FROM previous_bonusq WHERE user_id = '" + user_id +
+          "'");
+      result = Object.values(JSON.parse(JSON.stringify(result)));
+      return JSON.parse(result[0].bonusq);
+    }
+  }
+}
+
+const randomBonusq = async (user_id, category_id, cluse_num,subject_name) => {
+  var qeryResult =await sqlQuery(
+    "SELECT * FROM bonus_clues WHERE category_id = " + category_id);
+  qeryResult = Object.values(JSON.parse(JSON.stringify(qeryResult)));
+  var query_length = qeryResult.length;
+  var random_quires = [];
+  for (var i = 0; i < cluse_num; i++) {
+    if (i === 0) {
+      var temp_random =
+        Math.floor(Math.random() * query_length) + 1;
+      random_quires.push(temp_random);
+    } else {
+      while (random_quires.includes(temp_random)) {
+        var temp_random =
+          Math.floor(Math.random() * query_length) + 1;
+      }
+      random_quires.push(temp_random);
+    }
+  }
+  var results =await sqlQuery(
+    `SELECT question FROM bonus_clues WHERE id IN (${random_quires.join(",")})`);
+  results = Object.values(JSON.parse(JSON.stringify(results)));
+
+  var return_val = [];
+  var wiki_data = await wikiFunc(subject_name);
+  for (var i = 0; i < results.length; i++) {
+    for (var k = 0; k < 50000; k++) {}
+    var question = results[i].question;
+    var answer = await gptFunc(
+      subject_name,
+      wiki_data.extract,
+      question
+    );
+    return_val[i] = {};
+    return_val[i].question = question;
+    return_val[i].answer = answer.answer;
+  }
+
+  var today = Date.now();
+  var check_results = await sqlQuery("SELECT * FROM previous_bonusq WHERE user_id = '" + user_id + "'");
+  check_results = Object.values(JSON.parse(JSON.stringify(check_results)));
+  if (check_results.length === 0) {
+    var query =
+      "INSERT INTO previous_bonusq (user_id, bonusq, time) VALUEs ('" +
+      user_id +
+      "','" +
+      JSON.stringify(return_val) +
+      "', + '" +
+      today +
+      "')";
+  } else {
+    var query =
+      "UPDATE previous_bonusq SET bonusq = '" +
+      JSON.stringify(return_val) +
+      "', time = '" +
+      today +
+      "' WHERE user_id = '" +
+      user_id +
+      "'";
+  }
+  await sqlQuery(query);
+  return return_val;
+}
 
 const wikiFunc = async (subject) => {
   var return_val = {};
@@ -187,7 +285,6 @@ const wikiFunc = async (subject) => {
 };
 
 const gptFunc = async (subject, description, question) => {
-  
   var return_val = {};
   try {
     const apiKey = OPENAI_KEY;
@@ -208,11 +305,11 @@ const gptFunc = async (subject, description, question) => {
       prompt: prompt,
       model: "text-davinci-001", // specify the model you want to use
     };
-    // console.log(data);
     var response = await axios.post(endpoint, data, { headers });
     var answer = response.data.choices[0].text;
     answer = answer.replaceAll("\n", "");
     answer = answer.replaceAll(".", "");
+    answer = answer.replaceAll(" ", "");
     return_val.success = true;
     return_val.answer = answer;
     return return_val;
