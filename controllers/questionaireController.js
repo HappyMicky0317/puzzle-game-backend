@@ -19,6 +19,8 @@ const initial = async (req, res) => {
         var category_id = subject_data.category_id;
         var bonusq_data = await getBonusq(user_id, category_id, clues_num,subject_data.subject_name);
         return_val.clues = bonusq_data;
+        var userq_data = await getUserq(user_id);
+        return_val.userq = userq_data;
         return_val.success = true;
         res.status(200).json(return_val);
       } else {
@@ -33,12 +35,54 @@ const initial = async (req, res) => {
 const asking = async (req, res) => {
   const subject = req.body.subject;
   const question = req.body.question;
+  const email = req.body.email;
   const wiki_data = await wikiFunc(subject);
   const description = wiki_data.extract;
 
   var answer = await gptFunc(subject, description, question);
+  var temp = {};
+  temp.question = question;
+  temp.flag = answer.answer;
+  console.log(answer.answer);
+  console.log(temp);
+  var insert_val = [];
+  var today = Date.now();
 
   if (answer.success === true) {
+
+    db.query("SELECT id FROM user WHERE email = '" + email + "'", async (error, result) => {
+      var user_id = result[0].id;
+      var questionaire = await sqlQuery(
+        "SELECT userq, time FROM previous_userq WHERE user_id = '" + user_id + "'"
+      );
+      questionaire = Object.values(JSON.parse(JSON.stringify(questionaire)));
+      if(questionaire.length === 0) {
+        insert_val.push(temp);
+        const qeryResult =await sqlQuery(
+          "INSERT INTO previous_userq (user_id, userq, time) VALUES ('" + user_id + "','" + JSON.stringify(insert_val) + "','" + today + "')"
+        );
+      } else {
+        var previous_time = questionaire[0].time;
+        var previous_day = new Date(parseInt(previous_time)).getDate();
+        var today_day = new Date(parseInt(Date.now())).getDate();
+        if (today_day - previous_day !== 0) {
+          insert_val.push(temp);
+          const qeryResult =await sqlQuery(
+            "UPDATE previous_userq SET userq = '" + JSON.stringify(insert_val) + "', time = '" + today + "'"
+          );
+        } else {
+          var current_userq = await sqlQuery(
+            "SELECT userq FROM previous_userq WHERE user_id = '" + user_id + "'"
+          );
+          current_userq = Object.values(JSON.parse(JSON.stringify(current_userq)));
+          insert_val = JSON.parse(current_userq[0].userq);
+          insert_val.push(temp);
+          const qeryResult =await sqlQuery(
+            "UPDATE previous_userq SET userq = '" + JSON.stringify(insert_val) + "', time = '" + today + "'"
+          );
+        }
+      }      
+    })
     res.status(200).json(answer.answer);
   } else {
     res.status(500).json(answer.message);
@@ -134,7 +178,7 @@ const randomSubject = async (user_id) => {
 
   if (results.length === 0) {
     var query =
-      "INSERT INTO previous_subject (user_id, subject_id, time) VALUEs ('" +
+      "INSERT INTO previous_subject (user_id, subject_id, time) VALUES ('" +
       user_id +
       "','" +
       subject_id +
@@ -199,6 +243,7 @@ const randomBonusq = async (user_id, category_id, cluse_num,subject_name) => {
       random_quires.push(temp_random);
     }
   }
+  console.log(random_quires + "----//////////-----")
   var results =await sqlQuery(
     `SELECT question FROM bonus_clues WHERE id IN (${random_quires.join(",")})`);
   results = Object.values(JSON.parse(JSON.stringify(results)));
@@ -242,6 +287,25 @@ const randomBonusq = async (user_id, category_id, cluse_num,subject_name) => {
   }
   await sqlQuery(query);
   return return_val;
+}
+
+const getUserq = async (user_id) => {
+  var return_val = [];
+  var query_result = await sqlQuery("SELECT userq, time FROM previous_userq WHERE user_id = '" + user_id + "'");
+  query_result = Object.values(JSON.parse(JSON.stringify(query_result)));
+  if(query_result.length === 0) {
+    return return_val;
+  } else {
+    var previous_time = query_result[0].time;
+    var previous_day = new Date(parseInt(previous_time)).getDate();
+    var today_day = new Date(parseInt(Date.now())).getDate();
+    if(today_day - previous_day !== 0) {
+      return return_val;
+    } else {
+      return_val = JSON.parse(query_result[0].userq);
+      return return_val;
+    }
+  }
 }
 
 const wikiFunc = async (subject) => {
@@ -299,7 +363,7 @@ const gptFunc = async (subject, description, question) => {
             ${description}
 
             ${question}
-            Answer with yes or no.
+            Answer only with yes or no.
         `;
     const data = {
       prompt: prompt,
@@ -310,6 +374,12 @@ const gptFunc = async (subject, description, question) => {
     answer = answer.replaceAll("\n", "");
     answer = answer.replaceAll(".", "");
     answer = answer.replaceAll(" ", "");
+    if(answer !== "Yes") {
+      if(answer !== "No"){
+        console.log("here")
+        answer = "No"
+      }
+    }
     return_val.success = true;
     return_val.answer = answer;
     return return_val;
