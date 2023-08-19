@@ -43,8 +43,6 @@ const asking = async (req, res) => {
   var temp = {};
   temp.question = question;
   temp.flag = answer.answer;
-  console.log(answer.answer);
-  console.log(temp);
   var insert_val = [];
   var today = Date.now();
 
@@ -353,24 +351,31 @@ const gptFunc = async (subject, description, question) => {
   try {
     const apiKey = OPENAI_KEY;
 
-    const endpoint = "https://api.openai.com/v1/completions";
+    const endpoint = "https://api.openai.com/v1/chat/completions";
 
     const headers = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      "Authorization": `Bearer ${apiKey}`,
     };
-    var prompt = `This is about ${subject}.
+    var prompt = `
+            This is about ${subject}.
             ${description}
-
+            
+            Below question is about the subject in above description.
             ${question}
-            Answer only with yes or no.
+            Answer with Yes or No.
         `;
+        console.log("prompt: ", prompt);
     const data = {
-      prompt: prompt,
-      model: "text-davinci-001", // specify the model you want to use
+      "messages": [{
+        "role": "user",
+        "content": prompt
+      }],
+      model: "gpt-3.5-turbo", // specify the model you want to use,
     };
     var response = await axios.post(endpoint, data, { headers });
-    var answer = response.data.choices[0].text;
+    var answer = response.data.choices[0].message.content;
+    console.log("res:",  answer);
     answer = answer.replaceAll("\n", "");
     answer = answer.replaceAll(".", "");
     answer = answer.replaceAll(" ", "");

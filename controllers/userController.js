@@ -137,6 +137,7 @@ const checkAvailable = (req, res) => {
         } else {
           return_val.play = false;
         }
+        console.log(return_val);
         res.status(200).json(return_val);
       }
     }
