@@ -26,7 +26,7 @@ const initial = async (req, res) => {
       } else {
         return_val.success = false;
         return_val.msg = "Invalid user";
-        res.json(200).json(return_val);
+        res.status(200).json(return_val);
       }
     }
   );
@@ -202,14 +202,12 @@ const getBonusq = async (user_id, category_id, clues_num,subject_name) => {
     "SELECT previous_bonusq.time AS previous_time FROM previous_bonusq WHERE previous_bonusq.user_id = '" + user_id + "'");
   const results = Object.values(JSON.parse(JSON.stringify(qeryResult)));
   if (results.length === 0) {
-    // console.log(randomBonusq(user_id, category_id, clues_num))
     return randomBonusq(user_id, category_id, clues_num,subject_name);
   } else {
     var previous_time = results[0].previous_time;
     var previous_day = new Date(parseInt(previous_time)).getDate();
     var today_day = new Date(parseInt(Date.now())).getDate();
     if(today_day - previous_day !== 0) {
-      // console.log(randomBonusq(user_id, category_id, clues_num))
     return randomBonusq(user_id, category_id, clues_num,subject_name);
     } else {
       var result = await
@@ -241,7 +239,7 @@ const randomBonusq = async (user_id, category_id, cluse_num,subject_name) => {
       random_quires.push(temp_random);
     }
   }
-  console.log(random_quires + "----//////////-----")
+  console.log(random_quires + ":random_quires------" + cluse_num + ":cluse_num");
   var results =await sqlQuery(
     `SELECT question FROM bonus_clues WHERE id IN (${random_quires.join(",")})`);
   results = Object.values(JSON.parse(JSON.stringify(results)));
@@ -365,7 +363,6 @@ const gptFunc = async (subject, description, question) => {
             ${question}
             Answer with Yes or No.
         `;
-        console.log("prompt: ", prompt);
     const data = {
       "messages": [{
         "role": "user",
@@ -375,13 +372,11 @@ const gptFunc = async (subject, description, question) => {
     };
     var response = await axios.post(endpoint, data, { headers });
     var answer = response.data.choices[0].message.content;
-    console.log("res:",  answer);
     answer = answer.replaceAll("\n", "");
     answer = answer.replaceAll(".", "");
     answer = answer.replaceAll(" ", "");
     if(answer !== "Yes") {
       if(answer !== "No"){
-        console.log("here")
         answer = "No"
       }
     }

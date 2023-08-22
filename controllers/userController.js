@@ -137,7 +137,6 @@ const checkAvailable = (req, res) => {
         } else {
           return_val.play = false;
         }
-        console.log(return_val);
         res.status(200).json(return_val);
       }
     }
@@ -166,24 +165,32 @@ const insertDiceVal = (req, res) => {
 const checkDiceAvailable = (req, res) => {
   var email = req.body.email;
   var return_val = {};
+  console.log(email + ":email--------------------can't find the property last_dice");
   db.query('SELECT last_dice FROM user WHERE email = "' + email + '"', (error, results) => {
-    var data = results[0].last_dice;
-    if(data === "0"){
+    if(results.length === 0) {
       return_val.success = true;
-    } else {
-      var dice_result = data.slice(0,1);
-      var timestamp = data.slice(1);
-      var previous_day = new Date(parseInt(timestamp)).getDate();
-      var today = new Date(parseInt(Date.now())).getDate();
-      if(today - previous_day !== 0) {
+      return_val.msg = "no user";
+      res.status(200).json(return_val);
+    }else {
+      var data = results[0].last_dice;
+      if(data === "0"){
         return_val.success = true;
+        return_val.previous_val = 1;
       } else {
-        return_val.success = false;
-        return_val.previous_val = dice_result;
+        var dice_result = data.slice(0,1);
+        var timestamp = data.slice(1);
+        var previous_day = new Date(parseInt(timestamp)).getDate();
+        var today = new Date(parseInt(Date.now())).getDate();
+        if(today - previous_day !== 0) {
+          return_val.success = true;
+          return_val.previous_val = 1;
+        } else {
+          return_val.success = false;
+          return_val.previous_val = dice_result;
+        }
       }
-    }
-    console.log(return_val);
-    res.status(200).json(return_val);
+      res.status(200).json(return_val);
+    }    
   })
 }
 
