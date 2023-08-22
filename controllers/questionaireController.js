@@ -90,6 +90,7 @@ const asking = async (req, res) => {
 const getDescription = async (req, res) => {
   var subject = req.body.subject;
   var val = await wikiFunc(subject);
+  console.log(val);
   if (val.success === true) {
     res.status(200).json(val);
   } else {
@@ -234,14 +235,20 @@ const randomBonusq = async (user_id, category_id, cluse_num,subject_name) => {
     } else {
       while (random_quires.includes(temp_random)) {
         var temp_random =
-          Math.floor(Math.random() * query_length) + 1;
+          Math.floor(Math.random() * 10) + 1;
       }
       random_quires.push(temp_random);
     }
   }
   console.log(random_quires + ":random_quires------" + cluse_num + ":cluse_num");
-  var results =await sqlQuery(
-    `SELECT question FROM bonus_clues WHERE id IN (${random_quires.join(",")})`);
+  var results_data =await sqlQuery(
+    `SELECT question FROM bonus_clues WHERE category_id = ` + category_id);
+    console.log(results_data);
+    var results = [];
+  for(var i = 0; i < cluse_num ; i++) {
+    results.push(results_data[random_quires[i] - 1]);
+  }
+  console.log(results);
   results = Object.values(JSON.parse(JSON.stringify(results)));
 
   var return_val = [];
@@ -334,8 +341,13 @@ const wikiFunc = async (subject) => {
       },
       // params : params
     });
-    return_val.image =
-      imageResponse.data.query.pages[return_val.pageId].thumbnail.source;
+    var temp_imageurl =
+      imageResponse.data.query.pages[return_val.pageId].thumbnail?.source;
+    if(temp_imageurl){
+      return_val.image = temp_imageurl
+    } else {
+      return_val.image = ""
+    }
     return return_val;
   } catch (error) {
     return_val.success = false;
