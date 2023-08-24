@@ -6,6 +6,7 @@ const connection = mysql.createConnection({
   user: "root", // Replace with your database username
   password: "", // Replace with your database password
   database: "puzzle_game", // Replace with your database name
+  wait_timeout : 0
 });
 
 connection.connect((error) => {
