@@ -165,9 +165,10 @@ const randomSubject = async (user_id) => {
   results = Object.values(JSON.parse(JSON.stringify(results)));
   var len = results.length;
   var random_int = Math.floor(Math.random() * len) + 1;
-
-  var selected_val = await sqlQuery("SELECT main_object.id AS id, main_object.name AS subject_name, category.name AS category_name, category.id AS category_id FROM main_object JOIN category ON main_object.category_id = category.id WHERE main_object.id = " +
-  random_int);
+  var selected_val1 = await sqlQuery("SELECT main_object.id AS id, main_object.name AS subject_name, category.name AS category_name, category.id AS category_id FROM main_object JOIN category ON main_object.category_id = category.id");
+  var selected_val = [];
+  selected_val[0] = selected_val1[random_int - 1];
+  console.log(selected_val);
   selected_val = Object.values(JSON.parse(JSON.stringify(selected_val)));
   var subject_id = selected_val[0].id;
   var today = Date.now();
