@@ -165,7 +165,6 @@ const insertDiceVal = (req, res) => {
 const checkDiceAvailable = (req, res) => {
   var email = req.body.email;
   var return_val = {};
-  console.log(email + ":email--------------------can't find the property last_dice");
   db.query('SELECT last_dice FROM user WHERE email = "' + email + '"', (error, results) => {
     if(results.length === 0) {
       return_val.success = true;

@@ -90,7 +90,6 @@ const asking = async (req, res) => {
 const getDescription = async (req, res) => {
   var subject = req.body.subject;
   var val = await wikiFunc(subject);
-  console.log(val);
   if (val.success === true) {
     res.status(200).json(val);
   } else {
@@ -168,7 +167,6 @@ const randomSubject = async (user_id) => {
   var selected_val1 = await sqlQuery("SELECT main_object.id AS id, main_object.name AS subject_name, category.name AS category_name, category.id AS category_id FROM main_object JOIN category ON main_object.category_id = category.id");
   var selected_val = [];
   selected_val[0] = selected_val1[random_int - 1];
-  console.log(selected_val);
   selected_val = Object.values(JSON.parse(JSON.stringify(selected_val)));
   var subject_id = selected_val[0].id;
   var today = Date.now();
@@ -241,15 +239,12 @@ const randomBonusq = async (user_id, category_id, cluse_num,subject_name) => {
       random_quires.push(temp_random);
     }
   }
-  console.log(random_quires + ":random_quires------" + cluse_num + ":cluse_num");
   var results_data =await sqlQuery(
     `SELECT question FROM bonus_clues WHERE category_id = ` + category_id);
-    console.log(results_data);
     var results = [];
   for(var i = 0; i < cluse_num ; i++) {
     results.push(results_data[random_quires[i] - 1]);
   }
-  console.log(results);
   results = Object.values(JSON.parse(JSON.stringify(results)));
 
   var return_val = [];
