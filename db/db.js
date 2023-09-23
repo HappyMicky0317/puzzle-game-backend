@@ -1,7 +1,7 @@
 const mysql = require("mysql");
 
 const connection = mysql.createConnection({
-  host: "35.183.37.63", // Replace with your database host
+  host: "127.0.0.1", // Replace with your database host
   port: "3306", // Replace with your database host
   user: "root", // Replace with your database username
   password: "", // Replace with your database password
