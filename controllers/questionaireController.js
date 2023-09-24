@@ -53,6 +53,7 @@ const asking = async (req, res) => {
         "SELECT userq, time FROM previous_userq WHERE user_id = '" + user_id + "'"
       );
       questionaire = Object.values(JSON.parse(JSON.stringify(questionaire)));
+      console.log("sdfsd")
       if(questionaire.length === 0) {
         insert_val.push(temp);
         const qeryResult =await sqlQuery(
