@@ -354,7 +354,7 @@ const wikiFunc = async (subject) => {
 };
 
 const gptFunc = async (subject, description, question) => {
-  console.log(subject)
+  // console.log(subject)
   var return_val = {};
   try {
     const apiKey = OPENAI_KEY;
@@ -383,7 +383,7 @@ const gptFunc = async (subject, description, question) => {
     };
     var response = await axios.post(endpoint, data, { headers });
     var answer = response.data.choices[0].message.content;
-    console.log(answer)
+    // console.log(answer)
     answer = answer.replaceAll("\n", "");
     answer = answer.replaceAll(".", "");
     answer = answer.replaceAll(" ", "");
