@@ -47,7 +47,6 @@ const asking = async (req, res) => {
   var today = Date.now();
 
   if (answer.success === true) {
-
     db.query("SELECT id FROM user WHERE email = '" + email + "'", async (error, result) => {
       var user_id = result[0].id;
       var questionaire = await sqlQuery(
@@ -79,10 +78,10 @@ const asking = async (req, res) => {
             "UPDATE previous_userq SET userq = '" + JSON.stringify(insert_val) + "', time = '" + today + "'"
           );
         }
-      }      
+      }
+      console.log("answer.answer")
+      res.status(200).json(answer.answer);      
     })
-    console.log("answer.answer")
-    res.status(200).json(answer.answer);
   } else {
     res.status(500).json(answer.message);
   }
