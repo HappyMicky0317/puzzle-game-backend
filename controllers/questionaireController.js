@@ -81,6 +81,7 @@ const asking = async (req, res) => {
         }
       }      
     })
+    console.log(answer.answer)
     res.status(200).json(answer.answer);
   } else {
     res.status(500).json(answer.message);
