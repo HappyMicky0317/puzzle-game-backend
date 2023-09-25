@@ -38,8 +38,10 @@ const asking = async (req, res) => {
   const email = req.body.email;
   const wiki_data = await wikiFunc(subject);
   const description = wiki_data.extract;
-  console.log("sdfsdsdsd")
+  console.log(subject + "/" + description + "/" + question);
   var answer = await gptFunc(subject, description, question);
+  console.log("answer");
+  console.log(answer)
   var temp = {};
   temp.question = question;
   temp.flag = answer.answer;
