@@ -386,6 +386,7 @@ const gptFunc = async (subject, description, question) => {
     var response = await axios.post(endpoint, data, { headers });
     var answer = response.data.choices[0].message.content;
     // console.log(answer)
+    console.log("gptanswer////////" + answer);
     answer = answer.replaceAll("\n", "");
     answer = answer.replaceAll(".", "");
     answer = answer.replaceAll(" ", "");
