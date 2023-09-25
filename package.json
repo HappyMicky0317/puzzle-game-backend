@@ -20,7 +20,7 @@
     "nodemon": "^3.0.1"
   },
   "engines": {
-    "node": "14.17.0"
+    "node": "18.18.0"
   },
   "dependencies": {
     "@babel/cli": "^7.22.15",
