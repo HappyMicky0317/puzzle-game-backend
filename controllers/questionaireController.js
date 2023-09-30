@@ -38,10 +38,7 @@ const asking = async (req, res) => {
   const email = req.body.email;
   const wiki_data = await wikiFunc(subject);
   const description = wiki_data.extract;
-  console.log(subject + "/" + description + "/" + question);
   var answer = await gptFunc(subject, description, question);
-  console.log("answer");
-  console.log(answer)
   var temp = {};
   temp.question = question;
   temp.flag = answer.answer;
@@ -51,11 +48,11 @@ const asking = async (req, res) => {
   if (answer.success === true) {
     db.query("SELECT id FROM user WHERE email = '" + email + "'", async (error, result) => {
       var user_id = result[0].id;
+      console.log(user_id);
       var questionaire = await sqlQuery(
         "SELECT userq, time FROM previous_userq WHERE user_id = '" + user_id + "'"
       );
       questionaire = Object.values(JSON.parse(JSON.stringify(questionaire)));
-      console.log("sdfsd")
       if(questionaire.length === 0) {
         insert_val.push(temp);
         const qeryResult =await sqlQuery(
@@ -82,7 +79,6 @@ const asking = async (req, res) => {
           );
         }
       }
-      console.log("answer.answer")
       res.status(200).json(answer.answer);      
     })
   } else {
@@ -356,7 +352,6 @@ const wikiFunc = async (subject) => {
 };
 
 const gptFunc = async (subject, description, question) => {
-  // console.log(subject)
   var return_val = {};
   try {
     const apiKey = OPENAI_KEY;
@@ -385,8 +380,6 @@ const gptFunc = async (subject, description, question) => {
     };
     var response = await axios.post(endpoint, data, { headers });
     var answer = response.data.choices[0].message.content;
-    // console.log(answer)
-    console.log("gptanswer////////" + answer);
     answer = answer.replaceAll("\n", "");
     answer = answer.replaceAll(".", "");
     answer = answer.replaceAll(" ", "");
