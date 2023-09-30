@@ -65,7 +65,7 @@ const asking = async (req, res) => {
         if (today_day - previous_day !== 0) {
           insert_val.push(temp);
           const qeryResult =await sqlQuery(
-            "UPDATE previous_userq SET userq = '" + JSON.stringify(insert_val) + "', time = '" + today + "'"
+            "UPDATE previous_userq SET userq = '" + JSON.stringify(insert_val) + "', time = '" + today + "' WHERE user_id = '" + user_id + "'"
           );
         } else {
           var current_userq = await sqlQuery(
