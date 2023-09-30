@@ -75,7 +75,7 @@ const asking = async (req, res) => {
           insert_val = JSON.parse(current_userq[0].userq);
           insert_val.push(temp);
           const qeryResult =await sqlQuery(
-            "UPDATE previous_userq SET userq = '" + JSON.stringify(insert_val) + "', time = '" + today + "'"
+            "UPDATE previous_userq SET userq = '" + JSON.stringify(insert_val) + "', time = '" + today + "' WHERE user_id = '" + user_id + "'"
           );
         }
       }
